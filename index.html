@@ -38,7 +38,7 @@
         }
 
         .stat-box {
-            background: rgba(255, 255, 255, 0.85);
+            background: rgba(255, 255, 255, 0.9);
             padding: 10px 20px;
             border-radius: 20px;
             font-size: 1.2rem;
@@ -85,24 +85,31 @@
             50% { transform: translateX(-50%) scale(1.05); }
         }
 
-        /* Floating Small Bubbles */
+        /* Floating Small Picture Bubbles */
         .bubble {
             position: absolute;
-            width: 85px;
-            height: 85px;
+            width: 110px; /* Increased size to show pictures better */
+            height: 110px;
             border-radius: 50%;
-            background: radial-gradient(circle at 30% 30%, #ffffff, #80deea);
-            border: 2px solid rgba(255,255,255,0.8);
-            box-shadow: 0 4px 10px rgba(0,0,0,0.15), inset -2px -2px 6px rgba(0,0,0,0.1);
+            /* Semi-transparent background so pictures pop */
+            background: rgba(255, 255, 255, 0.85); 
+            border: 3px solid rgba(178, 235, 242, 0.8);
+            box-shadow: 0 6px 12px rgba(0,0,0,0.15), inset -2px -2px 6px rgba(0,0,0,0.1);
             display: flex;
+            flex-direction: column;
             justify-content: center;
             align-items: center;
-            font-size: 1.05rem;
-            font-weight: bold;
-            color: #006064;
             cursor: pointer;
             transition: transform 0.1s ease;
             z-index: 2;
+            overflow: hidden; /* Keep image in circle */
+        }
+
+        .bubble-img {
+            width: 75%; /* Scaled image area */
+            height: 75%;
+            object-fit: contain; /* Don't distort aspect ratio */
+            pointer-events: none;
         }
 
         .bubble:active {
@@ -116,7 +123,7 @@
 
         @keyframes popAnimation {
             0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.3); opacity: 0.5; }
+            50% { transform: scale(1.4); opacity: 0.6; }
             100% { transform: scale(0); opacity: 0; }
         }
 
@@ -125,7 +132,7 @@
             position: fixed;
             top: 0; left: 0;
             width: 100vw; height: 100vh;
-            background: rgba(0, 0, 0, 0.6);
+            background: rgba(0, 0, 0, 0.65);
             display: flex;
             justify-content: center;
             align-items: center;
@@ -135,31 +142,38 @@
         .modal-content {
             background: white;
             padding: 30px;
-            border-radius: 20px;
+            border-radius: 24px;
             text-align: center;
-            max-width: 450px;
+            max-width: 480px;
             width: 85%;
             box-shadow: 0 10px 25px rgba(0,0,0,0.3);
         }
 
         .modal-content h2 { color: #00796b; margin-top: 0; }
 
-        .summary-list {
-            display: flex;
-            flex-wrap: wrap;
+        .summary-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
             gap: 10px;
-            justify-content: center;
             margin: 20px 0;
+            max-height: 250px;
+            overflow-y: auto;
         }
 
-        .summary-tag {
+        .summary-card {
             background: #e0f2f1;
             color: #004d40;
-            padding: 8px 15px;
-            border-radius: 15px;
+            padding: 10px;
+            border-radius: 12px;
             font-size: 1.1rem;
             font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 10px;
         }
+
+        .summary-card img { width: 35px; height: 35px; object-fit: contain; }
 
         .btn {
             background: #00897b;
@@ -198,8 +212,8 @@
     <!-- Start Overlay -->
     <div id="start-modal" class="modal">
         <div class="modal-content">
-            <h2>臨時量詞大冒險</h2>
-            <p>看清大氣泡顯示的目標量詞！<br>在 <b>15 秒</b> 內戳破所有屬於該量詞的物體氣泡！</p>
+            <h2>臨時量詞圖片大冒險</h2>
+            <p>觀察大氣泡中的目標量詞！<br>在 <b>15 秒</b> 內點擊圖片氣泡，戳破所有能配對該量詞的物品！</p>
             <button class="btn" onclick="startGame()">開始遊戲 Start</button>
         </div>
     </div>
@@ -208,8 +222,8 @@
     <div id="summary-modal" class="modal hidden">
         <div class="modal-content">
             <h2 id="summary-title">回合結束！</h2>
-            <p>目標量詞「<span id="summary-target" style="font-weight:bold; color:#c2185b;"></span>」的常見組合有：</p>
-            <div class="summary-list" id="summary-list"></div>
+            <p>目標量詞「<span id="summary-target" style="font-weight:bold; color:#c2185b;"></span>」的常見圖文搭配：</p>
+            <div class="summary-grid" id="summary-grid"></div>
             <button class="btn" onclick="nextRound()">下一關 Next Round</button>
         </div>
     </div>
@@ -217,69 +231,125 @@
     <!-- Game Over Overlay -->
     <div id="gameover-modal" class="modal hidden">
         <div class="modal-content">
-            <h2>遊戲完成！</h2>
-            <p>你的最終得分是：</p>
-            <h1 id="final-score" style="color: #00796b; font-size: 3rem; margin: 10px 0;">0</h1>
+            <h2>遊戲完成！ 🎉</h2>
+            <p>你的最終得分：</p>
+            <h1 id="final-score" style="color: #00796b; font-size: 3.5rem; margin: 10px 0;">0</h1>
             <button class="btn" onclick="restartGame()">再玩一次 Play Again</button>
         </div>
     </div>
 
     <script>
-        // Database: 5 Target Classifiers with 10 correct items each
+        // Data Structure now points to specific image URLs.
+        // NOTE: Replace these placeholder URLs with your final high-quality hosted assets.
         const gameData = [
             {
                 classifier: '碗',
-                items: ['一碗飯', '一碗湯', '一碗麵', '一碗粥', '一碗糖水', '一碗雪糕', '一碗麥片', '一碗餛飩', '一碗涼粉', '一碗沙律']
+                items: [
+                    // Example placeholders visualizing "Bowl"
+                    { name: '一碗飯', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=RiceBowl' },
+                    { name: '一碗湯', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=SoupBowl' },
+                    { name: '一碗麵', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=NoodleBowl' },
+                    { name: '一碗粥', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=Congee' },
+                    { name: '一碗糖水', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=DessertBowl' },
+                    { name: '一碗雪糕', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=IceCreamBowl' },
+                    { name: '一碗麥片', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=CerealBowl' },
+                    { name: '一碗餛飩', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=Wonton' },
+                    { name: '一碗涼粉', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=GrassJelly' },
+                    { name: '一碗沙律', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=BowlSalad' }
+                ]
             },
             {
                 classifier: '杯',
-                items: ['一杯雪糕', '一杯橙汁', '一杯牛奶', '一杯咖啡', '一杯熱茶', '一杯可樂', '一杯水', '一杯奶茶', '一杯果汁', '一杯檸檬水']
+                items: [
+                    // Example placeholders visualizing "Cup/Glass"
+                    { name: '一杯雪糕', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=CupIceCream' },
+                    { name: '一杯橙汁', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=OrangeJuice' },
+                    { name: '一杯牛奶', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=MilkGlass' },
+                    { name: '一杯咖啡', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=CoffeeMug' },
+                    { name: '一杯熱茶', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=TeaCup' },
+                    { name: '一杯可樂', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=CokeGlass' },
+                    { name: '一杯水', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=WaterGlass' },
+                    { name: '一杯奶茶', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=MilkTea' },
+                    { name: '一杯果汁', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=JuiceBox' },
+                    { name: '一杯檸檬水', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=Lemonade' }
+                ]
             },
             {
                 classifier: '碟',
-                items: ['一碟意粉', '一碟炒飯', '一碟小菜', '一碟點心', '一碟水餃', '一碟水果', '一碟沙律', '一碟餅乾', '一碟薯條', '一碟芽菜']
+                items: [
+                    // Example placeholders visualizing "Plate/Dish"
+                    { name: '一碟意粉', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=PastaPlate' },
+                    { name: '一碟炒飯', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=FriedRice' },
+                    { name: '一碟小菜', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=SideDish' },
+                    { name: '一碟點心', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=DimSumPlate' },
+                    { name: '一碟水餃', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=DumplingPlate' },
+                    { name: '一碟水果', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=FruitPlate' },
+                    { name: '一碟沙律', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=PlateSalad' },
+                    { name: '一碟餅乾', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=CookiePlate' },
+                    { name: '一碟薯條', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=FriesPlate' },
+                    { name: '一碟牛扒', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=SteakPlate' }
+                ]
             },
             {
                 classifier: '袋',
-                items: ['一袋橙', '一袋米', '一袋垃圾', '一袋蘋果', '一袋土豆', '一袋零食', '一袋麵包', '一袋衣服', '一袋書本', '一袋文具']
+                items: [
+                    // Example placeholders visualizing "Bag"
+                    { name: '一袋橙', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=OrangeBag' },
+                    { name: '一袋米', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=RiceSack' },
+                    { name: '一袋垃圾', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=TrashBag' },
+                    { name: '一袋蘋果', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=AppleBag' },
+                    { name: '一袋薯仔', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=PotatoBag' },
+                    { name: '一袋零食', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=SnackBag' },
+                    { name: '一袋麵包', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=BreadBag' },
+                    { name: '一袋衣服', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=ClothesBag' },
+                    { name: '一袋書本', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=BookBag' },
+                    { name: '一袋文具', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=PencilCase' }
+                ]
             },
             {
                 classifier: '盒',
-                items: ['一盒朱古力', '一盒牛奶', '一盒紙巾', '一盒餅乾', '一盒月餅', '一盒便當', '一盒雞蛋', '一盒火柴', '一盒彩色筆', '一盒豆腐']
+                items: [
+                    // Example placeholders visualizing "Box"
+                    { name: '一盒朱古力', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=ChocBox' },
+                    { name: '一盒牛奶', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=MilkCarton' },
+                    { name: '一盒紙巾', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=TissueBox' },
+                    { name: '一盒餅乾', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=CookieBox' },
+                    { name: '一盒月餅', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=MooncakeBox' },
+                    { name: '一盒便當', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=BentoBox' },
+                    { name: '一盒雞蛋', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=EggCarton' },
+                    { name: '一盒火柴', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=MatchBox' },
+                    { name: '一盒彩色筆', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=CrayonBox' },
+                    { name: '一盒豆腐', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=TofuCarton' }
+                ]
             }
         ];
 
-        // Web Audio API Sound Generator
+        // ... (Remaining Audio Logic is identical to previous version) ...
         const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-        
         function playSound(type) {
-            if (audioCtx.state === 'suspended') {
-                audioCtx.resume();
-            }
+            if (audioCtx.state === 'suspended') audioCtx.resume();
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
             osc.connect(gain);
             gain.connect(audioCtx.destination);
-
             if (type === 'pop') {
                 osc.type = 'sine';
                 osc.frequency.setValueAtTime(600, audioCtx.currentTime);
-                osc.frequency.exponentialRampToValueAtTime(200, audioCtx.currentTime + 0.08);
+                osc.frequency.exponentialRampToValueAtTime(150, audioCtx.currentTime + 0.08);
                 gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
                 gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.08);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.08);
             } else if (type === 'wrong') {
                 osc.type = 'sawtooth';
-                osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+                osc.frequency.setValueAtTime(160, audioCtx.currentTime);
                 gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
                 gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.2);
-                osc.start();
-                osc.stop(audioCtx.currentTime + 0.2);
+                osc.start(); osc.stop(audioCtx.currentTime + 0.2);
             }
         }
+        // ...
 
-        // Game State Variables
+        // Game Variables
         let currentRound = 0;
         let score = 0;
         let timeLeft = 15;
@@ -289,15 +359,11 @@
         let targetsRemaining = 0;
         let currentTargetData = null;
 
-        // Shuffle helper
-        function shuffle(array) {
-            return array.slice().sort(() => Math.random() - 0.5);
-        }
+        function shuffle(array) { return array.slice().sort(() => Math.random() - 0.5); }
 
         function startGame() {
             document.getElementById('start-modal').classList.add('hidden');
-            score = 0;
-            currentRound = 0;
+            score = 0; currentRound = 0;
             document.getElementById('score').innerText = score;
             setupRound();
         }
@@ -308,13 +374,11 @@
         }
 
         function setupRound() {
-            // Clear previous state
             const container = document.getElementById('game-container');
             document.querySelectorAll('.bubble').forEach(b => b.remove());
             activeBubbles = [];
             
             if (currentRound >= gameData.length) {
-                // Game End
                 document.getElementById('final-score').innerText = score;
                 document.getElementById('gameover-modal').classList.remove('hidden');
                 return;
@@ -324,36 +388,35 @@
             document.getElementById('round-num').innerText = currentRound + 1;
             document.getElementById('target-word').innerText = currentTargetData.classifier;
 
-            // Pick 5 target items out of 10
+            // ... (Logic for selecting targets/distractors is identical) ...
             const correctPool = shuffle(currentTargetData.items);
-            const targets = correctPool.slice(0, 5).map(text => ({ text, isTarget: true }));
-
-            // Gather distractors from all other categories
+            const targets = correctPool.slice(0, 5).map(item => ({ ...item, isTarget: true }));
             let distractorPool = [];
-            gameData.forEach((data, index) => {
-                if (index !== currentRound) {
-                    distractorPool = distractorPool.concat(data.items);
-                }
-            });
-            const distractors = shuffle(distractorPool).slice(0, 10).map(text => ({ text, isTarget: false }));
-
-            // Combine and shuffle to make 15 total items
+            gameData.forEach((data, index) => { if (index !== currentRound) distractorPool = distractorPool.concat(data.items); });
+            const distractors = shuffle(distractorPool).slice(0, 10).map(item => ({ ...item, isTarget: false }));
             const roundItems = shuffle([...targets, ...distractors]);
             targetsRemaining = 5;
+            // ...
 
-            // Create Bubble Objects
             const containerWidth = container.clientWidth;
             const containerHeight = container.clientHeight;
 
             roundItems.forEach((item) => {
                 const bubbleEl = document.createElement('div');
                 bubbleEl.className = 'bubble';
-                bubbleEl.innerText = item.text;
 
-                // Initial Random Positions
-                const radius = 42.5;
+                // Picture element (Replaced emoji/text with image tag)
+                const imgEl = document.createElement('img');
+                imgEl.className = 'bubble-img';
+                imgEl.src = item.imgUrl; // Load from database URL
+                imgEl.alt = item.name;
+
+                bubbleEl.appendChild(imgEl);
+
+                // Adjusted Radius and Positioning for larger bubbles
+                const radius = 55; // Larger radius for images
                 let x = Math.random() * (containerWidth - radius * 2) + radius;
-                let y = Math.random() * (containerHeight - radius * 2 - 150) + radius + 130; // Avoid overlapping big top bubble
+                let y = Math.random() * (containerHeight - radius * 2 - 160) + radius + 140;
 
                 bubbleEl.style.left = `${x - radius}px`;
                 bubbleEl.style.top = `${y - radius}px`;
@@ -362,8 +425,7 @@
 
                 const bubbleObj = {
                     element: bubbleEl,
-                    x: x,
-                    y: y,
+                    x: x, y: y,
                     vx: (Math.random() - 0.5) * 2,
                     vy: (Math.random() - 0.5) * 2,
                     radius: radius,
@@ -375,7 +437,7 @@
                 activeBubbles.push(bubbleObj);
             });
 
-            // Start Timer and Physics Animation
+            // Start Timer and Physics loop
             timeLeft = 15;
             document.getElementById('timer').innerText = timeLeft;
             clearInterval(timerInterval);
@@ -385,21 +447,16 @@
             updatePhysics();
         }
 
+        // ... (PopBubble, UpdateTimer, UpdatePhysics logic are identical) ...
         function popBubble(bubbleObj) {
             if (bubbleObj.popped) return;
-
             bubbleObj.popped = true;
             bubbleObj.element.classList.add('pop');
-
             if (bubbleObj.isTarget) {
                 playSound('pop');
-                score += 10;
-                targetsRemaining--;
+                score += 10; targetsRemaining--;
                 document.getElementById('score').innerText = score;
-
-                if (targetsRemaining === 0) {
-                    endRound();
-                }
+                if (targetsRemaining === 0) endRound();
             } else {
                 playSound('wrong');
                 score = Math.max(0, score - 5);
@@ -410,51 +467,41 @@
         function updateTimer() {
             timeLeft--;
             document.getElementById('timer').innerText = timeLeft;
-            if (timeLeft <= 0) {
-                endRound();
-            }
+            if (timeLeft <= 0) endRound();
         }
 
         function updatePhysics() {
             const container = document.getElementById('game-container');
             const width = container.clientWidth;
             const height = container.clientHeight;
-
             activeBubbles.forEach(b => {
                 if (b.popped) return;
-
-                // Move
-                b.x += b.vx;
-                b.y += b.vy;
-
-                // Boundaries collision
+                b.x += b.vx; b.y += b.vy;
                 if (b.x - b.radius < 0) { b.x = b.radius; b.vx *= -1; }
                 if (b.x + b.radius > width) { b.x = width - b.radius; b.vx *= -1; }
-                if (b.y - b.radius < 120) { b.y = 120 + b.radius; b.vy *= -1; } // Keep space below top UI
+                if (b.y - b.radius < 130) { b.y = 130 + b.radius; b.vy *= -1; } // Adjusted constraint
                 if (b.y + b.radius > height) { b.y = height - b.radius; b.vy *= -1; }
-
-                // Apply styles
                 b.element.style.left = `${b.x - b.radius}px`;
                 b.element.style.top = `${b.y - b.radius}px`;
             });
-
             animationFrameId = requestAnimationFrame(updatePhysics);
         }
+        // ...
 
         function endRound() {
             clearInterval(timerInterval);
             cancelAnimationFrame(animationFrameId);
 
-            // Populate Summary Modal
-            const summaryList = document.getElementById('summary-list');
-            summaryList.innerHTML = '';
+            const summaryGrid = document.getElementById('summary-grid');
+            summaryGrid.innerHTML = '';
             
             document.getElementById('summary-target').innerText = currentTargetData.classifier;
             currentTargetData.items.forEach(item => {
-                const tag = document.createElement('div');
-                tag.className = 'summary-tag';
-                tag.innerText = item;
-                summaryList.appendChild(tag);
+                const card = document.createElement('div');
+                card.className = 'summary-card';
+                // Updated summary grid to show the image as well
+                card.innerHTML = `<img src="${item.imgUrl}" alt="${item.name}"> <span>${item.name}</span>`;
+                summaryGrid.appendChild(card);
             });
 
             document.getElementById('summary-modal').classList.remove('hidden');
