@@ -75,10 +75,16 @@
             box-shadow: 0 8px 15px rgba(0,0,0,0.2), inset 0 0 15px rgba(255,255,255,0.6);
             z-index: 5;
             animation: pulse 2s infinite ease-in-out;
+            overflow: hidden;
         }
 
-        #target-bubble .label { font-size: 0.9rem; opacity: 0.9; }
+        #target-bubble .label { font-size: 0.85rem; opacity: 0.9; }
         #target-bubble .word { font-size: 2.2rem; font-weight: bold; }
+        #target-bubble img.target-pic {
+            width: 70%;
+            height: 70%;
+            object-fit: contain;
+        }
 
         @keyframes pulse {
             0%, 100% { transform: translateX(-50%) scale(1); }
@@ -143,12 +149,56 @@
             padding: 30px;
             border-radius: 24px;
             text-align: center;
-            max-width: 480px;
+            max-width: 520px;
             width: 85%;
             box-shadow: 0 10px 25px rgba(0,0,0,0.3);
         }
 
         .modal-content h2 { color: #00796b; margin-top: 0; }
+
+        .select-group {
+            margin: 15px 0;
+            text-align: left;
+        }
+
+        .select-group label {
+            display: block;
+            font-weight: bold;
+            margin-bottom: 6px;
+            color: #004d40;
+        }
+
+        .options-grid {
+            display: grid;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .option-btn {
+            background: #e0f2f1;
+            border: 2px solid #80cbc4;
+            color: #004d40;
+            padding: 10px;
+            border-radius: 12px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .option-btn.selected {
+            background: #00897b;
+            color: white;
+            border-color: #004d40;
+        }
+
+        .level-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
 
         .summary-grid {
             display: grid;
@@ -194,46 +244,63 @@
 
     <!-- Top UI Container -->
     <div id="game-header">
-        <div class="stat-box">回合 Round: <span id="round-num">1</span>/5</div>
+        <div class="stat-box">回合 Round: <span id="round-num">1</span>/<span id="max-rounds">1</span></div>
         <div class="stat-box">得分 Score: <span id="score">0</span></div>
         <div class="stat-box">時間 Time: <span id="timer">30</span>s</div>
     </div>
 
     <!-- Play Field -->
     <div id="game-container">
-        <!-- Target Bubble -->
+        <!-- Target Big Bubble -->
         <div id="target-bubble">
             <span class="label">目標量詞</span>
             <span class="word" id="target-word">碗</span>
+            <img id="target-img" class="target-pic hidden" src="" alt="Target Item">
         </div>
     </div>
 
-    <!-- Start Overlay -->
+    <!-- Pre-selection / Start Modal -->
     <div id="start-modal" class="modal">
         <div class="modal-content">
             <h2>臨時量詞圖片大冒險</h2>
-            <p>觀察大氣泡中的目標量詞！<br>在 <b>30 秒</b> 內點擊圖片氣泡，戳破所有能配對該量詞的物品！</p>
+
+            <!-- 1. Select Classifier -->
+            <div class="select-group">
+                <label>1. 選擇目標量詞 (Select Classifier):</label>
+                <div class="options-grid" id="classifier-options">
+                    <button class="option-btn selected" onclick="selectClassifier('碗', this)">碗</button>
+                    <button class="option-btn" onclick="selectClassifier('杯', this)">杯</button>
+                    <button class="option-btn" onclick="selectClassifier('碟', this)">碟</button>
+                    <button class="option-btn" onclick="selectClassifier('袋', this)">袋</button>
+                    <button class="option-btn" onclick="selectClassifier('盒', this)">盒</button>
+                    <button class="option-btn" onclick="selectClassifier('箱', this)">箱</button>
+                </div>
+            </div>
+
+            <!-- 2. Select Level Mode -->
+            <div class="select-group">
+                <label>2. 選擇難度關卡 (Select Level):</label>
+                <div class="level-grid" id="level-options">
+                    <button class="option-btn selected" onclick="selectLevel(1, this)">
+                        Level 1<br><small style="font-size:0.8rem;">文字目標 (30秒/1回合)</small>
+                    </button>
+                    <button class="option-btn" onclick="selectLevel(2, this)">
+                        Level 2<br><small style="font-size:0.8rem;">配對目標圖 (10秒/3回合)</small>
+                    </button>
+                </div>
+            </div>
+
             <button class="btn" onclick="startGame()">開始遊戲 Start</button>
         </div>
     </div>
 
-    <!-- Round Summary Overlay -->
+    <!-- Round / Game Summary Overlay -->
     <div id="summary-modal" class="modal hidden">
         <div class="modal-content">
-            <h2 id="summary-title">回合結束！</h2>
+            <h2 id="summary-title">練習完成！</h2>
             <p>目標量詞「<span id="summary-target" style="font-weight:bold; color:#c2185b;"></span>」的常見圖文搭配：</p>
             <div class="summary-grid" id="summary-grid"></div>
-            <button class="btn" onclick="nextRound()">下一關 Next Round</button>
-        </div>
-    </div>
-
-    <!-- Game Over Overlay -->
-    <div id="gameover-modal" class="modal hidden">
-        <div class="modal-content">
-            <h2>遊戲完成！ 🎉</h2>
-            <p>你的最終得分：</p>
-            <h1 id="final-score" style="color: #00796b; font-size: 3.5rem; margin: 10px 0;">0</h1>
-            <button class="btn" onclick="restartGame()">再玩一次 Play Again</button>
+            <button class="btn" onclick="restartToMenu()">返回主選單 Menu</button>
         </div>
     </div>
 
@@ -242,76 +309,91 @@
             {
                 classifier: '碗',
                 items: [
-                    { name: '一碗飯', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=RiceBowl' },
-                    { name: '一碗湯', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=SoupBowl' },
-                    { name: '一碗麵', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=NoodleBowl' },
-                    { name: '一碗粥', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=Congee' },
-                    { name: '一碗糖水', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=DessertBowl' },
-                    { name: '一碗雪糕', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=IceCreamBowl' },
-                    { name: '一碗麥片', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=CerealBowl' },
-                    { name: '一碗餛飩', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=Wonton' },
-                    { name: '一碗涼粉', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=GrassJelly' },
-                    { name: '一碗沙律', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=BowlSalad' }
+                    { name: '一碗草莓', imgUrl: '12.png' },
+                    { name: '一碗麵', imgUrl: '13.png' },
+                    { name: '一碗飯', imgUrl: '14.png' },
+                    { name: '一碗沙律', imgUrl: '15.png' },
+                    { name: '一碗粟米片', imgUrl: '16.png' },
+                    { name: '一碗蔬菜', imgUrl: '17.png' },
+                    { name: '一碗糖', imgUrl: '18.png' },
+                    { name: '一碗湯', imgUrl: '19.png' },
+                    { name: '一碗飯', imgUrl: '20.png' },
+                    { name: '一碗湯', imgUrl: '21.png' }
                 ]
             },
             {
                 classifier: '杯',
                 items: [
-                    { name: '一杯雪糕', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=CupIceCream' },
-                    { name: '一杯橙汁', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=OrangeJuice' },
-                    { name: '一杯牛奶', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=MilkGlass' },
-                    { name: '一杯咖啡', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=CoffeeMug' },
-                    { name: '一杯熱茶', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=TeaCup' },
-                    { name: '一杯可樂', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=CokeGlass' },
-                    { name: '一杯水', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=WaterGlass' },
-                    { name: '一杯奶茶', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=MilkTea' },
-                    { name: '一杯果汁', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=JuiceBox' },
-                    { name: '一杯檸檬水', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=Lemonade' }
+                    { name: '一杯朱古力', imgUrl: '22.png' },
+                    { name: '一杯茶', imgUrl: '23.png' },
+                    { name: '一杯水', imgUrl: '24.png' },
+                    { name: '一杯牛奶', imgUrl: '25.png' },
+                    { name: '一杯檸檬汁', imgUrl: '26.png' },
+                    { name: '一杯橙汁', imgUrl: '27.png' },
+                    { name: '一杯可樂', imgUrl: '28.png' },
+                    { name: '一杯蘋果汁', imgUrl: '29.png' },
+                    { name: '一杯雪糕', imgUrl: '30.png' },
+                    { name: '一杯水', imgUrl: '31.png' }
                 ]
             },
             {
                 classifier: '碟',
                 items: [
-                    { name: '一碟意粉', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=PastaPlate' },
-                    { name: '一碟炒飯', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=FriedRice' },
-                    { name: '一碟小菜', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=SideDish' },
-                    { name: '一碟點心', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=DimSumPlate' },
-                    { name: '一碟水餃', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=DumplingPlate' },
-                    { name: '一碟水果', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=FruitPlate' },
-                    { name: '一碟沙律', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=PlateSalad' },
-                    { name: '一碟餅乾', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=CookiePlate' },
-                    { name: '一碟薯條', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=FriesPlate' },
-                    { name: '一碟牛扒', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=SteakPlate' }
+                    { name: '一碟飯', imgUrl: '32.png' },
+                    { name: '一碟肉', imgUrl: '33.png' },
+                    { name: '一碟餃子', imgUrl: '34.png' },
+                    { name: '一碟曲奇餅', imgUrl: '35.png' }
+                    { name: '一碟炒飯', imgUrl: '36.png' },
+                    { name: '一碟炒麵', imgUrl: '37.png' },
+                    { name: '一碟冬甩', imgUrl: '38.png' },
+                    { name: '一碟意粉', imgUrl: '39.png' },
+                    { name: '一碟壽司', imgUrl: '40.png' },
+                    { name: '一碟三文治', imgUrl: '41.png' },
                 ]
             },
             {
                 classifier: '袋',
                 items: [
-                    { name: '一袋橙', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=OrangeBag' },
-                    { name: '一袋米', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=RiceSack' },
-                    { name: '一袋垃圾', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=TrashBag' },
-                    { name: '一袋蘋果', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=AppleBag' },
-                    { name: '一袋薯仔', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=PotatoBag' },
-                    { name: '一袋零食', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=SnackBag' },
-                    { name: '一袋麵包', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=BreadBag' },
-                    { name: '一袋衣服', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=ClothesBag' },
-                    { name: '一袋書本', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=BookBag' },
-                    { name: '一袋文具', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=PencilCase' }
+                    { name: '一袋禮物', imgUrl: '42.png' },
+                    { name: '一袋玩具', imgUrl: '43.png' },
+                    { name: '一袋麵包', imgUrl: '44.png' },
+                    { name: '一袋波子', imgUrl: '45.png' },
+                    { name: '一袋蘋果', imgUrl: '46.png' },
+                    { name: '一袋垃圾', imgUrl: '47.png' },
+                    { name: '一袋菜', imgUrl: '48.png' },
+                    { name: '一袋錢', imgUrl: '49.png' },
+                    { name: '一袋糖', imgUrl: '50.png' },
+                    { name: '一袋曲奇餅', imgUrl: '51.png' }
+                ]
+            },
+            {
+                classifier: '箱',
+                items: [
+                    { name: '一箱玩具', imgUrl: '52.png' }
+                    { name: '一箱雜物', imgUrl: '53.png' },
+                    { name: '一箱書', imgUrl: '54.png' },
+                    { name: '一箱食物', imgUrl: '55.png' },
+                    { name: '一箱文具', imgUrl: '56.png' },
+                    { name: '一箱蔬果', imgUrl: '57.png' },
+                    { name: '一箱水果', imgUrl: '58.png' },
+                    { name: '一箱飲品', imgUrl: '59.png' },
+                    { name: '一箱衣服', imgUrl: '60.png' },
+                    { name: '一箱食物', imgUrl: '61.png' },
                 ]
             },
             {
                 classifier: '盒',
                 items: [
-                    { name: '一盒朱古力', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=ChocBox' },
-                    { name: '一盒牛奶', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=MilkCarton' },
-                    { name: '一盒紙巾', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=TissueBox' },
-                    { name: '一盒餅乾', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=CookieBox' },
-                    { name: '一盒月餅', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=MooncakeBox' },
-                    { name: '一盒便當', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=BentoBox' },
-                    { name: '一盒雞蛋', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=EggCarton' },
-                    { name: '一盒火柴', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=MatchBox' },
-                    { name: '一盒彩色筆', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=CrayonBox' },
-                    { name: '一盒豆腐', imgUrl: 'https://via.placeholder.com/150/FFFFFF/000000?text=TofuCarton' }
+                    { name: '一盒草莓', imgUrl: '62.png' },
+                    { name: '一盒冬甩', imgUrl: '63.png' },
+                    { name: '一盒雞蛋', imgUrl: '64.png' },
+                    { name: '一盒粟米片', imgUrl: '65.png' },
+                    { name: '一盒蘋果汁', imgUrl: '66.png' },
+                    { name: '一盒紙巾', imgUrl: '67.png' },
+                    { name: '一盒朱古力', imgUrl: '68.png' },
+                    { name: '一盒顏色筆', imgUrl: '69.png' },
+                    { name: '一盒牛奶', imgUrl: '70.png' },
+                    { name: '一盒飯', imgUrl: '71.png' }
                 ]
             }
         ];
@@ -339,51 +421,113 @@
             }
         }
 
-        let currentRound = 0;
+        let selectedClassifierName = '碗';
+        let selectedLevel = 1;
+
+        let currentRound = 1;
+        let maxRounds = 1;
         let score = 0;
-        let timeLeft = 30; // Updated to 30 seconds
+        let timeLeft = 30;
         let timerInterval = null;
         let animationFrameId = null;
         let activeBubbles = [];
         let targetsRemaining = 0;
-        let currentTargetData = null;
+        let currentTargetGroupData = null;
+        let currentLevel2TargetItem = null;
 
         function shuffle(array) { return array.slice().sort(() => Math.random() - 0.5); }
 
+        function selectClassifier(classifier, btn) {
+            selectedClassifierName = classifier;
+            const container = document.getElementById('classifier-options');
+            container.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+        }
+
+        function selectLevel(level, btn) {
+            selectedLevel = level;
+            const container = document.getElementById('level-options');
+            container.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
+            btn.classList.add('selected');
+        }
+
         function startGame() {
             document.getElementById('start-modal').classList.add('hidden');
-            score = 0; currentRound = 0;
+            score = 0;
+            currentRound = 1;
+            maxRounds = (selectedLevel === 1) ? 1 : 3;
+
             document.getElementById('score').innerText = score;
+            document.getElementById('max-rounds').innerText = maxRounds;
+
+            currentTargetGroupData = gameData.find(d => d.classifier === selectedClassifierName);
+
             setupRound();
         }
 
-        function restartGame() {
-            document.getElementById('gameover-modal').classList.add('hidden');
-            startGame();
+        function restartToMenu() {
+            document.getElementById('summary-modal').classList.add('hidden');
+            document.getElementById('start-modal').classList.remove('hidden');
         }
 
         function setupRound() {
             const container = document.getElementById('game-container');
             document.querySelectorAll('.bubble').forEach(b => b.remove());
             activeBubbles = [];
-            
-            if (currentRound >= gameData.length) {
-                document.getElementById('final-score').innerText = score;
-                document.getElementById('gameover-modal').classList.remove('hidden');
-                return;
+
+            document.getElementById('round-num').innerText = currentRound;
+
+            const targetWordEl = document.getElementById('target-word');
+            const targetImgEl = document.getElementById('target-img');
+
+            let roundItems = [];
+
+            if (selectedLevel === 1) {
+                // LEVEL 1: Text Target, 5 Targets + 10 Distractors, 30 Seconds, 1 Round
+                targetWordEl.classList.remove('hidden');
+                targetImgEl.classList.add('hidden');
+                targetWordEl.innerText = currentTargetGroupData.classifier;
+
+                const correctPool = shuffle(currentTargetGroupData.items);
+                const targets = correctPool.slice(0, 5).map(item => ({ ...item, isTarget: true }));
+                
+                let distractorPool = [];
+                gameData.forEach(data => {
+                    if (data.classifier !== selectedClassifierName) {
+                        distractorPool = distractorPool.concat(data.items);
+                    }
+                });
+                const distractors = shuffle(distractorPool).slice(0, 10).map(item => ({ ...item, isTarget: false }));
+                
+                roundItems = shuffle([...targets, ...distractors]);
+                targetsRemaining = 5;
+                timeLeft = 30;
+
+            } else {
+                // LEVEL 2: Picture Target, 1 Target Picture + 14 Random Distractors, 10 Seconds, 3 Rounds
+                targetWordEl.classList.add('hidden');
+                targetImgEl.classList.remove('hidden');
+
+                // Pick 1 target picture from target group
+                const targetPool = shuffle(currentTargetGroupData.items);
+                currentLevel2TargetItem = targetPool[0];
+                targetImgEl.src = currentLevel2TargetItem.imgUrl;
+                targetImgEl.alt = currentLevel2TargetItem.name;
+
+                const targetItemObj = { ...currentLevel2TargetItem, isTarget: true };
+
+                let distractorPool = [];
+                gameData.forEach(data => {
+                    if (data.classifier !== selectedClassifierName) {
+                        distractorPool = distractorPool.concat(data.items);
+                    }
+                });
+                const distractors = shuffle(distractorPool).slice(0, 14).map(item => ({ ...item, isTarget: false }));
+
+                roundItems = shuffle([targetItemObj, ...distractors]);
+                targetsRemaining = 1;
+                timeLeft = 10;
             }
-
-            currentTargetData = gameData[currentRound];
-            document.getElementById('round-num').innerText = currentRound + 1;
-            document.getElementById('target-word').innerText = currentTargetData.classifier;
-
-            const correctPool = shuffle(currentTargetData.items);
-            const targets = correctPool.slice(0, 5).map(item => ({ ...item, isTarget: true }));
-            let distractorPool = [];
-            gameData.forEach((data, index) => { if (index !== currentRound) distractorPool = distractorPool.concat(data.items); });
-            const distractors = shuffle(distractorPool).slice(0, 10).map(item => ({ ...item, isTarget: false }));
-            const roundItems = shuffle([...targets, ...distractors]);
-            targetsRemaining = 5;
 
             const containerWidth = container.clientWidth;
             const containerHeight = container.clientHeight;
@@ -422,8 +566,6 @@
                 activeBubbles.push(bubbleObj);
             });
 
-            // Timer set to 30s
-            timeLeft = 30;
             document.getElementById('timer').innerText = timeLeft;
             clearInterval(timerInterval);
             timerInterval = setInterval(updateTimer, 1000);
@@ -436,10 +578,13 @@
             if (bubbleObj.popped) return;
             bubbleObj.popped = true;
             bubbleObj.element.classList.add('pop');
+
             if (bubbleObj.isTarget) {
                 playSound('pop');
-                score += 10; targetsRemaining--;
+                score += 10; 
+                targetsRemaining--;
                 document.getElementById('score').innerText = score;
+
                 if (targetsRemaining === 0) endRound();
             } else {
                 playSound('wrong');
@@ -475,11 +620,20 @@
             clearInterval(timerInterval);
             cancelAnimationFrame(animationFrameId);
 
+            if (currentRound < maxRounds) {
+                currentRound++;
+                setupRound();
+            } else {
+                showFinalSummary();
+            }
+        }
+
+        function showFinalSummary() {
             const summaryGrid = document.getElementById('summary-grid');
             summaryGrid.innerHTML = '';
             
-            document.getElementById('summary-target').innerText = currentTargetData.classifier;
-            currentTargetData.items.forEach(item => {
+            document.getElementById('summary-target').innerText = currentTargetGroupData.classifier;
+            currentTargetGroupData.items.forEach(item => {
                 const card = document.createElement('div');
                 card.className = 'summary-card';
                 card.innerHTML = `<img src="${item.imgUrl}" alt="${item.name}"> <span>${item.name}</span>`;
@@ -487,12 +641,6 @@
             });
 
             document.getElementById('summary-modal').classList.remove('hidden');
-        }
-
-        function nextRound() {
-            document.getElementById('summary-modal').classList.add('hidden');
-            currentRound++;
-            setupRound();
         }
     </script>
 </body>
