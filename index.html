@@ -123,10 +123,10 @@
             transform: scale(0.9);
         }
 
-        /* (1) Correct Pop Animation */
+        /* Pop & Disappear Animation */
         .bubble.pop {
-            animation: popAnimation 0.3s forwards;
-            pointer-events: none;
+            animation: popAnimation 0.3s forwards !important;
+            pointer-events: none !important;
         }
 
         @keyframes popAnimation {
@@ -135,11 +135,12 @@
             100% { transform: scale(0); opacity: 0; }
         }
 
-        /* (1) Wrong Poke Animation & Red Flashing Highlight */
+        /* Wrong Poke Shake Animation */
         .bubble.wrong-poke {
             animation: shake 0.4s ease-in-out;
             border-color: #ff1744 !important;
             background: rgba(255, 205, 210, 0.95) !important;
+            pointer-events: none;
         }
 
         @keyframes shake {
@@ -310,7 +311,7 @@
         </div>
     </div>
 
-    <!-- (3) Round Buffer Transition Modal (Appears between rounds in Level 2) -->
+    <!-- Round Buffer Transition Modal -->
     <div id="buffer-modal" class="modal hidden">
         <div class="modal-content">
             <h2 id="buffer-title">👍 第 1 回合完成！</h2>
@@ -597,11 +598,11 @@
             updatePhysics();
         }
 
-        /* (1) POP or WRONG-POKE LOGIC */
         function popBubble(bubbleObj) {
             if (bubbleObj.popped) return;
 
             if (bubbleObj.isTarget) {
+                // Correct item popped directly
                 bubbleObj.popped = true;
                 bubbleObj.element.classList.add('pop');
                 playSound('pop');
@@ -611,14 +612,18 @@
 
                 if (targetsRemaining === 0) endRound();
             } else {
-                // Wrong item clicked: Trigger red shake animation
+                // Wrong item clicked: Shake red first, then eliminate/pop
+                bubbleObj.popped = true;
                 playSound('wrong');
                 score = Math.max(0, score - 5);
                 document.getElementById('score').innerText = score;
 
                 bubbleObj.element.classList.add('wrong-poke');
+
+                // After shake finishes (400ms), eliminate the wrong bubble
                 setTimeout(() => {
                     bubbleObj.element.classList.remove('wrong-poke');
+                    bubbleObj.element.classList.add('pop');
                 }, 400);
             }
         }
@@ -646,13 +651,11 @@
             animationFrameId = requestAnimationFrame(updatePhysics);
         }
 
-        /* (3) ROUND END & TRANSITION BUFFER LOGIC */
         function endRound() {
             clearInterval(timerInterval);
             cancelAnimationFrame(animationFrameId);
 
             if (currentRound < maxRounds) {
-                // Show buffer modal screen between Level 2 rounds
                 document.getElementById('buffer-title').innerText = `👍 第 ${currentRound} 回合完成！`;
                 document.getElementById('buffer-modal').classList.remove('hidden');
             } else {
@@ -666,9 +669,7 @@
             setupRound();
         }
 
-        /* (2) VICTORY CELEBRATION LOGIC */
         function showFinalSummary() {
-            // Trigger Confetti Fireworks
             if (typeof confetti === 'function') {
                 confetti({
                     particleCount: 120,
