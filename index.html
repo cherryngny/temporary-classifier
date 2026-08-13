@@ -4,6 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>臨時量詞大冒險 Temporary Classifiers Game</title>
+    <!-- Canvas Confetti Library for Celebration Effects -->
+    <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.9.2/dist/confetti.browser.min.js"></script>
     <style>
         :root {
             --primary-bg: #e0f7fa;
@@ -105,7 +107,7 @@
             justify-content: center;
             align-items: center;
             cursor: pointer;
-            transition: transform 0.1s ease;
+            transition: transform 0.1s ease, border-color 0.2s ease, background 0.2s ease;
             z-index: 2;
             overflow: hidden;
         }
@@ -121,6 +123,7 @@
             transform: scale(0.9);
         }
 
+        /* Correct Pop Animation */
         .bubble.pop {
             animation: popAnimation 0.3s forwards;
             pointer-events: none;
@@ -130,6 +133,19 @@
             0% { transform: scale(1); opacity: 1; }
             50% { transform: scale(1.4); opacity: 0.6; }
             100% { transform: scale(0); opacity: 0; }
+        }
+
+        /* Wrong Poke Animation & Red Highlight */
+        .bubble.wrong-poke {
+            animation: shake 0.4s ease-in-out;
+            border-color: #ff1744 !important;
+            background: rgba(255, 205, 210, 0.9) !important;
+        }
+
+        @keyframes shake {
+            0%, 100% { transform: translateX(0); }
+            20%, 60% { transform: translateX(-8px); }
+            40%, 80% { transform: translateX(8px); }
         }
 
         /* Modal / Overlay screens */
@@ -294,10 +310,19 @@
         </div>
     </div>
 
-    <!-- Round / Game Summary Overlay -->
+    <!-- Round Buffer Transition Modal (Level 2 Buffer) -->
+    <div id="buffer-modal" class="modal hidden">
+        <div class="modal-content">
+            <h2 id="buffer-title">👍 回合完成！</h2>
+            <p>準備好進行下一個回合嗎？</p>
+            <button class="btn" onclick="continueNextRound()">下一關 Next Round ➔</button>
+        </div>
+    </div>
+
+    <!-- Final Game Summary Overlay -->
     <div id="summary-modal" class="modal hidden">
         <div class="modal-content">
-            <h2 id="summary-title">練習完成！</h2>
+            <h2 id="summary-title">🎉 練習完成！</h2>
             <p>目標量詞「<span id="summary-target" style="font-weight:bold; color:#c2185b;"></span>」的常見圖文搭配：</p>
             <div class="summary-grid" id="summary-grid"></div>
             <button class="btn" onclick="restartToMenu()">返回主選單 Menu</button>
@@ -467,6 +492,7 @@
 
         function restartToMenu() {
             document.getElementById('summary-modal').classList.add('hidden');
+            document.getElementById('buffer-modal').classList.add('hidden');
             document.getElementById('start-modal').classList.remove('hidden');
         }
 
@@ -483,7 +509,6 @@
             let roundItems = [];
 
             if (selectedLevel === 1) {
-                // LEVEL 1: Text Target, 5 Targets + 10 Distractors, 30 Seconds, 1 Round
                 targetWordEl.classList.remove('hidden');
                 targetImgEl.classList.add('hidden');
                 targetWordEl.innerText = currentTargetGroupData.classifier;
@@ -504,11 +529,9 @@
                 timeLeft = 30;
 
             } else {
-                // LEVEL 2: Picture Target, 1 Target Picture + 14 Random Distractors, 10 Seconds, 3 Rounds
                 targetWordEl.classList.add('hidden');
                 targetImgEl.classList.remove('hidden');
 
-                // Pick 1 target picture from target group
                 const targetPool = shuffle(currentTargetGroupData.items);
                 currentLevel2TargetItem = targetPool[0];
                 targetImgEl.src = currentLevel2TargetItem.imgUrl;
@@ -576,10 +599,10 @@
 
         function popBubble(bubbleObj) {
             if (bubbleObj.popped) return;
-            bubbleObj.popped = true;
-            bubbleObj.element.classList.add('pop');
 
             if (bubbleObj.isTarget) {
+                bubbleObj.popped = true;
+                bubbleObj.element.classList.add('pop');
                 playSound('pop');
                 score += 10; 
                 targetsRemaining--;
@@ -590,6 +613,11 @@
                 playSound('wrong');
                 score = Math.max(0, score - 5);
                 document.getElementById('score').innerText = score;
+
+                bubbleObj.element.classList.add('wrong-poke');
+                setTimeout(() => {
+                    bubbleObj.element.classList.remove('wrong-poke');
+                }, 400);
             }
         }
 
@@ -621,14 +649,29 @@
             cancelAnimationFrame(animationFrameId);
 
             if (currentRound < maxRounds) {
-                currentRound++;
-                setupRound();
+                // Show Buffer screen between rounds in Level 2
+                document.getElementById('buffer-title').innerText = `👍 第 ${currentRound} 回合完成！`;
+                document.getElementById('buffer-modal').classList.remove('hidden');
             } else {
                 showFinalSummary();
             }
         }
 
+        function continueNextRound() {
+            document.getElementById('buffer-modal').classList.add('hidden');
+            currentRound++;
+            setupRound();
+        }
+
         function showFinalSummary() {
+            if (typeof confetti === 'function') {
+                confetti({
+                    particleCount: 100,
+                    spread: 70,
+                    origin: { y: 0.6 }
+                });
+            }
+
             const summaryGrid = document.getElementById('summary-grid');
             summaryGrid.innerHTML = '';
             
