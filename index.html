@@ -123,7 +123,7 @@
             transform: scale(0.9);
         }
 
-        /* Correct Pop Animation */
+        /* (1) Correct Pop Animation */
         .bubble.pop {
             animation: popAnimation 0.3s forwards;
             pointer-events: none;
@@ -135,17 +135,17 @@
             100% { transform: scale(0); opacity: 0; }
         }
 
-        /* Wrong Poke Animation & Red Highlight */
+        /* (1) Wrong Poke Animation & Red Flashing Highlight */
         .bubble.wrong-poke {
             animation: shake 0.4s ease-in-out;
             border-color: #ff1744 !important;
-            background: rgba(255, 205, 210, 0.9) !important;
+            background: rgba(255, 205, 210, 0.95) !important;
         }
 
         @keyframes shake {
             0%, 100% { transform: translateX(0); }
-            20%, 60% { transform: translateX(-8px); }
-            40%, 80% { transform: translateX(8px); }
+            20%, 60% { transform: translateX(-10px); }
+            40%, 80% { transform: translateX(10px); }
         }
 
         /* Modal / Overlay screens */
@@ -310,11 +310,11 @@
         </div>
     </div>
 
-    <!-- Round Buffer Transition Modal (Level 2 Buffer) -->
+    <!-- (3) Round Buffer Transition Modal (Appears between rounds in Level 2) -->
     <div id="buffer-modal" class="modal hidden">
         <div class="modal-content">
-            <h2 id="buffer-title">👍 回合完成！</h2>
-            <p>準備好進行下一個回合嗎？</p>
+            <h2 id="buffer-title">👍 第 1 回合完成！</h2>
+            <p>太棒了！準備好挑戰下一個回合嗎？</p>
             <button class="btn" onclick="continueNextRound()">下一關 Next Round ➔</button>
         </div>
     </div>
@@ -597,6 +597,7 @@
             updatePhysics();
         }
 
+        /* (1) POP or WRONG-POKE LOGIC */
         function popBubble(bubbleObj) {
             if (bubbleObj.popped) return;
 
@@ -610,6 +611,7 @@
 
                 if (targetsRemaining === 0) endRound();
             } else {
+                // Wrong item clicked: Trigger red shake animation
                 playSound('wrong');
                 score = Math.max(0, score - 5);
                 document.getElementById('score').innerText = score;
@@ -644,12 +646,13 @@
             animationFrameId = requestAnimationFrame(updatePhysics);
         }
 
+        /* (3) ROUND END & TRANSITION BUFFER LOGIC */
         function endRound() {
             clearInterval(timerInterval);
             cancelAnimationFrame(animationFrameId);
 
             if (currentRound < maxRounds) {
-                // Show Buffer screen between rounds in Level 2
+                // Show buffer modal screen between Level 2 rounds
                 document.getElementById('buffer-title').innerText = `👍 第 ${currentRound} 回合完成！`;
                 document.getElementById('buffer-modal').classList.remove('hidden');
             } else {
@@ -663,11 +666,13 @@
             setupRound();
         }
 
+        /* (2) VICTORY CELEBRATION LOGIC */
         function showFinalSummary() {
+            // Trigger Confetti Fireworks
             if (typeof confetti === 'function') {
                 confetti({
-                    particleCount: 100,
-                    spread: 70,
+                    particleCount: 120,
+                    spread: 80,
                     origin: { y: 0.6 }
                 });
             }
