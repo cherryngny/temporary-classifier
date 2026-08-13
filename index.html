@@ -166,8 +166,8 @@
             padding: 25px 30px;
             border-radius: 24px;
             text-align: center;
-            max-width: 540px;
-            width: 85%;
+            max-width: 580px;
+            width: 90%;
             box-shadow: 0 10px 25px rgba(0,0,0,0.3);
             display: flex;
             flex-direction: column;
@@ -214,11 +214,13 @@
             border-color: #004d40;
         }
 
+        /* 3-COLUMN LAYOUT FOR ALL 3 LEVELS */
         .level-grid {
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 8px;
             margin-bottom: 15px;
+            width: 100%;
         }
 
         /* Transition Card Display Box */
@@ -319,7 +321,7 @@
                 </div>
             </div>
 
-            <!-- 2. Select Level Mode -->
+            <!-- 2. Select Level Mode (Shows 3 Levels side by side) -->
             <div class="select-group">
                 <label>2. 選擇難度關卡 (Select Level):</label>
                 <div class="level-grid" id="level-options">
@@ -513,7 +515,7 @@
             container.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
             btn.classList.add('selected');
 
-            // Hide/show classifier selector depending on level 3
+            // Dim out classifier selection when level 3 is picked (since level 3 mixes all categories)
             const classifierGroup = document.getElementById('classifier-select-group');
             if (selectedLevel === 3) {
                 classifierGroup.style.opacity = '0.4';
