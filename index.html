@@ -163,10 +163,10 @@
 
         .modal-content {
             background: white;
-            padding: 30px;
+            padding: 25px 30px;
             border-radius: 24px;
             text-align: center;
-            max-width: 520px;
+            max-width: 540px;
             width: 85%;
             box-shadow: 0 10px 25px rgba(0,0,0,0.3);
             display: flex;
@@ -174,10 +174,10 @@
             align-items: center;
         }
 
-        .modal-content h2 { color: #00796b; margin-top: 0; }
+        .modal-content h2 { color: #00796b; margin-top: 0; margin-bottom: 12px; }
 
         .select-group {
-            margin: 15px 0;
+            margin: 10px 0;
             text-align: left;
             width: 100%;
         }
@@ -193,16 +193,16 @@
             display: grid;
             grid-template-columns: repeat(3, 1fr);
             gap: 10px;
-            margin-bottom: 15px;
+            margin-bottom: 10px;
         }
 
         .option-btn {
             background: #e0f2f1;
             border: 2px solid #80cbc4;
             color: #004d40;
-            padding: 10px;
+            padding: 8px 10px;
             border-radius: 12px;
-            font-size: 1.1rem;
+            font-size: 1rem;
             font-weight: bold;
             cursor: pointer;
             transition: all 0.2s;
@@ -216,9 +216,9 @@
 
         .level-grid {
             display: grid;
-            grid-template-columns: 1fr 1fr;
-            gap: 10px;
-            margin-bottom: 20px;
+            grid-template-columns: repeat(3, 1fr);
+            gap: 8px;
+            margin-bottom: 15px;
         }
 
         /* Transition Card Display Box */
@@ -245,7 +245,7 @@
             display: grid;
             grid-template-columns: repeat(2, 1fr);
             gap: 10px;
-            margin: 20px 0;
+            margin: 15px 0;
             max-height: 250px;
             overflow-y: auto;
             width: 100%;
@@ -256,7 +256,7 @@
             color: #004d40;
             padding: 10px;
             border-radius: 12px;
-            font-size: 1.1rem;
+            font-size: 1.05rem;
             font-weight: bold;
             display: flex;
             align-items: center;
@@ -307,7 +307,7 @@
             <h2>臨時量詞圖片大冒險</h2>
 
             <!-- 1. Select Classifier -->
-            <div class="select-group">
+            <div class="select-group" id="classifier-select-group">
                 <label>1. 選擇目標量詞 (Select Classifier):</label>
                 <div class="options-grid" id="classifier-options">
                     <button class="option-btn selected" onclick="selectClassifier('碗', this)">碗</button>
@@ -324,10 +324,13 @@
                 <label>2. 選擇難度關卡 (Select Level):</label>
                 <div class="level-grid" id="level-options">
                     <button class="option-btn selected" onclick="selectLevel(1, this)">
-                        Level 1<br><small style="font-size:0.8rem;">文字目標 (30秒/1回合)</small>
+                        Level 1<br><small style="font-size:0.75rem;">文字目標<br>(30秒/1回合)</small>
                     </button>
                     <button class="option-btn" onclick="selectLevel(2, this)">
-                        Level 2<br><small style="font-size:0.8rem;">配對目標圖 (10秒/5回合)</small>
+                        Level 2<br><small style="font-size:0.75rem;">單一類別圖<br>(10秒/5回合)</small>
+                    </button>
+                    <button class="option-btn" onclick="selectLevel(3, this)">
+                        Level 3<br><small style="font-size:0.75rem;">全隨機圖<br>(10秒/5回合)</small>
                     </button>
                 </div>
             </div>
@@ -341,7 +344,7 @@
         <div class="modal-content">
             <h2 id="buffer-title">👍 第 1 回合完成！</h2>
             
-            <!-- Level 2 Target Image Reinforcement Box (No text shown) -->
+            <!-- Target Image Reinforcement Box for Levels 2 & 3 (No text shown) -->
             <div id="buffer-img-box" class="buffer-card-container hidden">
                 <img id="buffer-target-img" class="buffer-card-img" src="" alt="Target Reinforcement">
             </div>
@@ -354,7 +357,7 @@
     <div id="summary-modal" class="modal hidden">
         <div class="modal-content">
             <h2 id="summary-title">🎉 練習完成！</h2>
-            <p>目標量詞「<span id="summary-target" style="font-weight:bold; color:#c2185b;"></span>」的常見圖文搭配：</p>
+            <p id="summary-subtitle">目標量詞「<span id="summary-target" style="font-weight:bold; color:#c2185b;"></span>」的常見圖文搭配：</p>
             <div class="summary-grid" id="summary-grid"></div>
             <button class="btn" onclick="restartToMenu()">返回主選單 Menu</button>
         </div>
@@ -490,9 +493,10 @@
         let targetsRemaining = 0;
         let currentTargetGroupData = null;
         
-        // Non-repeating Target Pool for Level 2
-        let level2TargetPool = [];
-        let currentLevel2TargetItem = null;
+        // Target Pools for Levels 2 & 3
+        let targetPool = [];
+        let currentTargetItem = null;
+        let summaryPlayedItems = []; // Tracks items encountered in Level 3 for summary screen
 
         function shuffle(array) { return array.slice().sort(() => Math.random() - 0.5); }
 
@@ -508,22 +512,44 @@
             const container = document.getElementById('level-options');
             container.querySelectorAll('.option-btn').forEach(b => b.classList.remove('selected'));
             btn.classList.add('selected');
+
+            // Hide/show classifier selector depending on level 3
+            const classifierGroup = document.getElementById('classifier-select-group');
+            if (selectedLevel === 3) {
+                classifierGroup.style.opacity = '0.4';
+                classifierGroup.style.pointerEvents = 'none';
+            } else {
+                classifierGroup.style.opacity = '1';
+                classifierGroup.style.pointerEvents = 'auto';
+            }
         }
 
         function startGame() {
             document.getElementById('start-modal').classList.add('hidden');
             score = 0;
             currentRound = 1;
-            maxRounds = (selectedLevel === 1) ? 1 : 5; // 5 rounds for Level 2
+            maxRounds = (selectedLevel === 1) ? 1 : 5; // 5 rounds for Levels 2 & 3
+            summaryPlayedItems = [];
 
             document.getElementById('score').innerText = score;
             document.getElementById('max-rounds').innerText = maxRounds;
 
-            currentTargetGroupData = gameData.find(d => d.classifier === selectedClassifierName);
+            if (selectedLevel === 1 || selectedLevel === 2) {
+                currentTargetGroupData = gameData.find(d => d.classifier === selectedClassifierName);
+            }
 
-            // Prepare non-repeating target pool for Level 2
+            // Prepare target pools based on level
             if (selectedLevel === 2) {
-                level2TargetPool = shuffle(currentTargetGroupData.items);
+                targetPool = shuffle(currentTargetGroupData.items);
+            } else if (selectedLevel === 3) {
+                // Collect ALL items across ALL categories for Level 3
+                let allItemsWithCategory = [];
+                gameData.forEach(cat => {
+                    cat.items.forEach(item => {
+                        allItemsWithCategory.push({ ...item, category: cat.classifier });
+                    });
+                });
+                targetPool = shuffle(allItemsWithCategory);
             }
 
             setupRound();
@@ -568,22 +594,28 @@
                 timeLeft = 30;
 
             } else {
+                // Levels 2 and 3: Image-based targets
                 targetWordEl.classList.add('hidden');
                 targetImgEl.classList.remove('hidden');
 
-                // Pop a unique non-repeating item for Level 2
-                currentLevel2TargetItem = level2TargetPool.pop();
-                targetImgEl.src = currentLevel2TargetItem.imgUrl;
-                targetImgEl.alt = currentLevel2TargetItem.name;
+                currentTargetItem = targetPool.pop();
+                summaryPlayedItems.push(currentTargetItem);
 
-                const targetItemObj = { ...currentLevel2TargetItem, isTarget: true };
+                targetImgEl.src = currentTargetItem.imgUrl;
+                targetImgEl.alt = currentTargetItem.name;
 
+                const targetItemObj = { ...currentTargetItem, isTarget: true };
+
+                // Get distractors from other categories/items
                 let distractorPool = [];
                 gameData.forEach(data => {
-                    if (data.classifier !== selectedClassifierName) {
-                        distractorPool = distractorPool.concat(data.items);
-                    }
+                    data.items.forEach(item => {
+                        if (item.imgUrl !== currentTargetItem.imgUrl) {
+                            distractorPool.push(item);
+                        }
+                    });
                 });
+
                 const distractors = shuffle(distractorPool).slice(0, 14).map(item => ({ ...item, isTarget: false }));
 
                 roundItems = shuffle([targetItemObj, ...distractors]);
@@ -699,10 +731,10 @@
                 const bufferImgBox = document.getElementById('buffer-img-box');
                 const bufferTargetImg = document.getElementById('buffer-target-img');
 
-                if (selectedLevel === 2 && currentLevel2TargetItem) {
+                if ((selectedLevel === 2 || selectedLevel === 3) && currentTargetItem) {
                     // Show target picture with NO written text for child to name verbally
-                    bufferTargetImg.src = currentLevel2TargetItem.imgUrl;
-                    bufferTargetImg.alt = currentLevel2TargetItem.name;
+                    bufferTargetImg.src = currentTargetItem.imgUrl;
+                    bufferTargetImg.alt = currentTargetItem.name;
                     bufferImgBox.classList.remove('hidden');
                 } else {
                     bufferImgBox.classList.add('hidden');
@@ -732,13 +764,25 @@
             const summaryGrid = document.getElementById('summary-grid');
             summaryGrid.innerHTML = '';
             
-            document.getElementById('summary-target').innerText = currentTargetGroupData.classifier;
-            currentTargetGroupData.items.forEach(item => {
-                const card = document.createElement('div');
-                card.className = 'summary-card';
-                card.innerHTML = `<img src="${item.imgUrl}" alt="${item.name}"> <span>${item.name}</span>`;
-                summaryGrid.appendChild(card);
-            });
+            const summarySubtitle = document.getElementById('summary-subtitle');
+
+            if (selectedLevel === 3) {
+                summarySubtitle.innerHTML = `本次全隨機挑戰所出現的圖文搭配：`;
+                summaryPlayedItems.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'summary-card';
+                    card.innerHTML = `<img src="${item.imgUrl}" alt="${item.name}"> <span>${item.name}</span>`;
+                    summaryGrid.appendChild(card);
+                });
+            } else {
+                summarySubtitle.innerHTML = `目標量詞「<span id="summary-target" style="font-weight:bold; color:#c2185b;">${currentTargetGroupData.classifier}</span>」的常見圖文搭配：`;
+                currentTargetGroupData.items.forEach(item => {
+                    const card = document.createElement('div');
+                    card.className = 'summary-card';
+                    card.innerHTML = `<img src="${item.imgUrl}" alt="${item.name}"> <span>${item.name}</span>`;
+                    summaryGrid.appendChild(card);
+                });
+            }
 
             document.getElementById('summary-modal').classList.remove('hidden');
         }
